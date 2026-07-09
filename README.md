@@ -1,7 +1,6 @@
-# Tennis Bracket Simulator
+# Mix Tennis Grand Slam Draw Simulator
 
-A tennis prediction/simulation game project, evolving from a straightforward
-single-elimination bracket simulator into a fantasy mixed-doubles prediction
+Grand Slam mixed-doubles tennis simulation and prediction
 game built on real historical Grand Slam data.
 
 ## Current status: V0 — Mixed Doubles Fantasy Simulator (Wimbledon 2026)
