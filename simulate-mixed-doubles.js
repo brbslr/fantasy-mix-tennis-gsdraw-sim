@@ -1,20 +1,23 @@
 // simulate-mixed-doubles.js
-// V0 for the new direction: hardcoded to Wimbledon 2026 quarterfinalists.
+// V0: hardcoded to Wimbledon 2026 quarterfinalists.
 // User "drafts" one male + one female QF player as their mixed doubles team.
 // The remaining 7 men + 7 women are randomly paired into 7 more teams.
 // An 8-team bracket is simulated based on each team's average rank
 // (lower rank number = stronger), with dampening so the best team
 // doesn't win overwhelmingly often.
 //
+// Unlimited simulations - just run the script again for a new result.
+// (Daily-limit mechanic has been removed; see README "Desired Direction"
+// for why, and for the plan to let the user choose from any of the last
+// ~147 Grand Slam tournaments, 1990 Australian Open through 2026 Wimbledon.)
+//
 // Run with: node simulate-mixed-doubles.js
 
-// Node's built-in file system module - lets us read/write JSON files on disk.
+// Node's built-in file system module - lets us read the quarterfinalist data from disk.
 const fs = require("fs");
 
 // Path to the quarterfinalist player pool (read-only data for this run).
 const DATA_FILE = "./quarterfinalists.json";
-// Path to the file that tracks "have I already played today" (created/updated by this script).
-const LOCK_FILE = "./last-play.json";
 
 // ---- HARDCODED USER PICK (V0 - no UI yet, edit these two names to "play") ----
 // In a real app this would come from user input (a form/click); for V0 you just
@@ -24,47 +27,6 @@ const USER_PICK = {
   female: "Coco Gauff"
 };
 // -------------------------------------------------------------------------
-
-// Returns today's date as "YYYY-MM-DD", used to compare against the lock file's saved date.
-function todayString() {
-  // new Date() = current date/time. toISOString() = e.g. "2026-07-10T14:32:01.000Z".
-  // slice(0, 10) trims that down to just "2026-07-10".
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-// Checks whether the user is allowed to simulate today.
-// Returns true if they CAN play (no lock yet, or lock is from a previous day).
-// Returns false (and prints their existing result) if they've already played today.
-function checkDailyLock() {
-  // If the lock file doesn't exist yet, nobody has played today (or ever) - allow it.
-  if (!fs.existsSync(LOCK_FILE)) return true;
-
-  // Read and parse the saved lock data from disk.
-  const lock = JSON.parse(fs.readFileSync(LOCK_FILE, "utf8"));
-
-  // If the saved date matches today's date, they've already used their daily play.
-  if (lock.date === todayString()) {
-    console.log(`You've already simulated today (${lock.date}). Your team's result:`);
-    console.log(`  Your team: ${lock.userTeam.join(" / ")}`);
-    console.log(`  Champion:  ${lock.champion.join(" / ")}`);
-    console.log(`  You won:   ${lock.userWon ? "YES" : "no"}`);
-    return false; // block a second simulation today
-  }
-
-  // Lock file exists but is from an earlier day - a new day means a new play is allowed.
-  return true;
-}
-
-// Writes today's result to the lock file, so a second run today will be blocked
-// and will show this same saved result instead of re-simulating.
-function saveDailyLock(userTeam, champion, userWon) {
-  fs.writeFileSync(
-    LOCK_FILE,
-    // JSON.stringify(..., null, 2) formats the JSON with 2-space indentation,
-    // just for readability if you open the file yourself.
-    JSON.stringify({ date: todayString(), userTeam, champion, userWon }, null, 2)
-  );
-}
 
 // Returns a new array with the same elements as `array`, but in random order.
 // Uses the Fisher-Yates shuffle algorithm (standard, unbiased way to shuffle).
@@ -170,22 +132,15 @@ function simulateBracket(teams) {
 }
 
 // ---- Main ----
-// Everything below only runs if checkDailyLock() returns true (i.e. user hasn't played today).
-if (checkDailyLock()) {
-  // Load the quarterfinalist player pool from disk.
-  const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-  console.log(`Simulating: ${data.tournament} - Fantasy Mixed Doubles\n`);
-  console.log(`Your team: ${USER_PICK.male} / ${USER_PICK.female}\n`);
+const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+console.log(`Simulating: ${data.tournament} - Fantasy Mixed Doubles\n`);
+console.log(`Your team: ${USER_PICK.male} / ${USER_PICK.female}\n`);
 
-  // Build all 8 teams (user's pick + 7 random pairings), then simulate the bracket.
-  const teams = buildTeams(data, USER_PICK);
-  const champion = simulateBracket(teams);
-  // Check whether the winning team happens to be the user's own team.
-  const userWon = champion.isUserTeam;
+// Build all 8 teams (user's pick + 7 random pairings), then simulate the bracket.
+const teams = buildTeams(data, USER_PICK);
+const champion = simulateBracket(teams);
+// Check whether the winning team happens to be the user's own team.
+const userWon = champion.isUserTeam;
 
-  console.log(`\n=== CHAMPIONS: ${champion.names.join(" / ")} ===`);
-  console.log(userWon ? "Your team won! 🏆" : "Your team did not win this time.");
-
-  // Save today's result so a second run today shows this result instead of re-simulating.
-  saveDailyLock([USER_PICK.male, USER_PICK.female], champion.names, userWon);
-}
+console.log(`\n=== CHAMPIONS: ${champion.names.join(" / ")} ===`);
+console.log(userWon ? "Your team won! 🏆" : "Your team did not win this time.");
