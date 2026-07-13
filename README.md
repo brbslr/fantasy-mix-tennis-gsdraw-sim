@@ -3,9 +3,9 @@
 Fantasy Grand Slam mixed-doubles tennis simulation and prediction
 game, drafting from the men's and women's singles quarterfinalists of the corresponding grandslam tournament, built on real historical Grand Slam data.
 
-## Current status: V0 — Mixed Doubles Fantasy Simulator (Wimbledon 2026)
+## Current status: V1 — GS Mixed Doubles Fantasy Simulator (2000-2017 & 2026)
 
-The current version is hardcoded to the real Wimbledon 2026 quarterfinalists.
+The current version is hardcoded to the quarterfinalists from the grandslams in the year 2000-2017 & 2026.
 The user drafts one male + one female QF player as their fantasy mixed
 doubles team; the remaining 14 players are randomly paired into 7 more teams;
 an 8-team bracket is simulated based on team strength (average rank of the
@@ -16,16 +16,16 @@ is no daily limit.
 
 - `quarterfinalists.json` — the real Wimbledon 2026 QF fields for men's and
   women's singles (8 players each), with rank derived from tournament
-  seeding. A couple of unseeded players (Struff, Fery) have estimated ranks,
+  seeding. A couple of unseeded players have estimated ranks,
   flagged `"_estimated": true`.
 - `simulate-mixed-doubles.js` — the engine:
-  - The user's team is currently hardcoded at the top of the file
-    (`USER_PICK`) — edit the two names to "draft" a different team, until a
+  - The user's picked tournament and team is currently hardcoded at the top of the file
+    (`USER_PICK` & `TOURNAMENT_KEY`) — edit until a
     real picker UI exists.
   - The remaining 7 men + 7 women are randomly shuffled and paired into 7
     opponent teams.
-  - Team strength uses **inverse average rank** (`1 / avgRank`), and win
-    probability is a ratio of strengths. This dampens the gap between strong
+  - Team strength uses **inverse average rank** (`1 / avgRank`) , and win
+    probability is a ratio of strengths but for the user picking both the #1 seeded players there's a cap so that they do not always win. This dampens the gap between strong
     and weak teams on purpose, so the best team wins more often but not
     automatically — upsets are meant to happen.
   - Every run is a fresh, independent simulation — just run the script again
@@ -72,14 +72,14 @@ tournaments from 1990 ao to 2026 wimbledon.
   **more likely, but not guaranteed**, to win — same dampened
   strength-ratio approach as the current V0's `1 / avgRank` model.
 
+## Previous versions
+0. only wimbledon 2026 simulation
 
 ## Next steps
 
-1. Generalize `quarterfinalists.json` into a dataset covering all ~147
-   Grand Slam tournaments (1990 Australian Open – 2026 Wimbledon), with real
-   QF fields and rankings-at-the-time for each.
+1. Adding the rest of the tournaments finishing the hardcoded simulation
 2. Build a tournament picker so the user can choose which of the ~147
-   tournaments to simulate, instead of it being hardcoded to Wimbledon 2026.
+   tournaments to simulate
 3. Replace the hardcoded `USER_PICK` with an actual UI (web page/mobile)
    where the user picks their team.
 
