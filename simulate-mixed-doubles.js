@@ -1,31 +1,34 @@
 // simulate-mixed-doubles.js
-// Loads quarterfinalists.json (built by generate-dataset.js) and simulates
-// a fantasy mixed-doubles bracket for ONE hardcoded tournament.
+// Interactive CLI: pick any tournament from quarterfinalists.json, then draft
+// one male + one female QF player as your fantasy mixed doubles team.
+// The remaining 7 men + 7 women are randomly paired into 7 more teams.
+// An 8-team bracket is simulated based on each team's average rank (lower
+// rank number = stronger), with a probability cap so the best team doesn't
+// win overwhelmingly often.
 //
-// User "drafts" one male + one female QF player from that tournament as
-// their team. The remaining 7 men + 7 women are randomly paired into 7
-// more teams. An 8-team bracket is simulated based on each team's average
-// rank (lower rank number = stronger), with dampening so the best team
-// doesn't win overwhelmingly often.
-//
-// Unlimited simulations - just run the script again for a new result.
+// Unlimited simulations - just run the script again to pick a new
+// tournament/team.
 //
 // Run with: node simulate-mixed-doubles.js
 
 const fs = require("fs");
+const readline = require("readline");
 
 const DATA_FILE = "./quarterfinalists.json";
 
-// ---- HARDCODED SELECTION (V0 - no UI yet, edit these to "play") ----
-// TOURNAMENT_KEY must match a "key" value inside quarterfinalists.json,
-// e.g. "wimbledon_2026", "ausopen_2005", "usopen_1999".
-const TOURNAMENT_KEY = "ausopen_2005";
+// A player with a missing rank (a handful of real unranked wildcard/comeback
+// entries exist in the dataset, e.g. Clijsters 2009, Henin 2010) is treated
+// as this rank for strength calculations - "weak but not impossible," rather
+// than crashing or being auto-excluded.
+const UNRANKED_FALLBACK = 250;
 
-const USER_PICK = {
-  male: "Roger Federer",
-  female: "Lindsay Davenport"
-};
-// ---------------------------------------------------------------------
+const rlInterface = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+function ask(question) {
+  return new Promise((resolve) => {
+    rlInterface.question(question, (answer) => resolve(answer.trim()));
+  });
+}
 
 // Fisher-Yates shuffle - returns a new array in random order.
 function shuffle(array) {
@@ -37,37 +40,73 @@ function shuffle(array) {
   return arr;
 }
 
-// Finds the requested tournament inside the dataset by its key.
-function findTournament(data, key) {
-  const tournament = data.tournaments.find((t) => t.key === key);
-  if (!tournament) {
-    const available = data.tournaments.map((t) => t.key).join(", ") || "(none found)";
-    throw new Error(
-      `Tournament "${key}" not found in quarterfinalists.json.\nAvailable keys: ${available}`
+// Effective rank for strength calculations - falls back to a fixed value
+// for the rare real "unranked" QF player instead of producing NaN.
+function effectiveRank(player) {
+  return typeof player.rank === "number" && !isNaN(player.rank) ? player.rank : UNRANKED_FALLBACK;
+}
+
+// ---- Tournament picker ----
+async function pickTournament(tournaments) {
+  let filtered = tournaments;
+
+  const filterInput = await ask(
+    `There are ${tournaments.length} tournaments available.\n` +
+    `Type part of a name or year to filter (e.g. "wimbledon" or "2015"), or press Enter to see all:\n> `
+  );
+
+  if (filterInput) {
+    const needle = filterInput.toLowerCase();
+    filtered = tournaments.filter(
+      (t) => t.tournament.toLowerCase().includes(needle) || t.key.toLowerCase().includes(needle)
     );
+    if (filtered.length === 0) {
+      console.log(`No tournaments matched "${filterInput}". Showing all instead.\n`);
+      filtered = tournaments;
+    }
   }
-  return tournament;
+
+  console.log("");
+  filtered.forEach((t, i) => console.log(`  ${i + 1}. ${t.tournament}`));
+
+  const choice = await ask(`\nPick a tournament (1-${filtered.length}):\n> `);
+  const idx = parseInt(choice, 10) - 1;
+
+  if (isNaN(idx) || idx < 0 || idx >= filtered.length) {
+    console.log("Invalid choice, try again.\n");
+    return pickTournament(tournaments); // re-prompt from the full list
+  }
+
+  return filtered[idx];
+}
+
+// ---- Player picker ----
+async function pickPlayer(players, label) {
+  console.log(`\n${label}:`);
+  players.forEach((p, i) => {
+    const rankLabel = typeof p.rank === "number" && !isNaN(p.rank) ? `rank ${p.rank}` : "unranked";
+    console.log(`  ${i + 1}. ${p.name} (${rankLabel})`);
+  });
+
+  const choice = await ask(`Pick one (1-${players.length}):\n> `);
+  const idx = parseInt(choice, 10) - 1;
+
+  if (isNaN(idx) || idx < 0 || idx >= players.length) {
+    console.log("Invalid choice, try again.");
+    return pickPlayer(players, label);
+  }
+
+  return players[idx];
 }
 
 // Builds all 8 mixed-doubles teams: the user's drafted team, plus 7 randomly
 // paired teams made from everyone else in the tournament's QF pool.
-function buildTeams(tournament, userPick) {
-  const remainingMen = tournament.men.filter((p) => p.name !== userPick.male);
-  const remainingWomen = tournament.women.filter((p) => p.name !== userPick.female);
-
-  if (remainingMen.length !== 7 || remainingWomen.length !== 7) {
-    throw new Error(
-      `Expected 8 men + 8 women with your picks removed leaving 7 each - ` +
-      `check that USER_PICK names exactly match names in quarterfinalists.json ` +
-      `for "${tournament.tournament}".`
-    );
-  }
+function buildTeams(tournament, userMale, userFemale) {
+  const remainingMen = tournament.men.filter((p) => p.name !== userMale.name);
+  const remainingWomen = tournament.women.filter((p) => p.name !== userFemale.name);
 
   const shuffledMen = shuffle(remainingMen);
   const shuffledWomen = shuffle(remainingWomen);
-
-  const userMale = tournament.men.find((p) => p.name === userPick.male);
-  const userFemale = tournament.women.find((p) => p.name === userPick.female);
 
   const teams = [{ players: [userMale, userFemale], isUserTeam: true }];
 
@@ -81,19 +120,14 @@ function buildTeams(tournament, userPick) {
   return teams.map((t) => ({
     ...t,
     names: t.players.map((p) => p.name),
-    avgRank: (t.players[0].rank + t.players[1].rank) / 2
+    avgRank: (effectiveRank(t.players[0]) + effectiveRank(t.players[1])) / 2
   }));
 }
 
-// Strength is inverse of average rank - lower rank number = higher strength.
-// Strength ratios (rather than raw rank difference) dampen blowout
-// probabilities, so the best team wins more often but not always.
-// Strength ratios alone still let the strongest possible team (both players
-// ranked #1) win almost every single match, since no opponent can have a
-// better rank to counterbalance it. To keep every match genuinely winnable,
-// the raw probability is capped to a [MIN_PROB, MAX_PROB] range - so even
-// the best team in the tournament only has an 85% chance in any one match,
-// leaving real upset odds every round instead of a near-guaranteed run.
+// Strength ratios alone would let the strongest possible team (both players
+// ranked #1) win almost every single match. To keep every match genuinely
+// winnable, the raw probability is capped to [MIN_PROB, MAX_PROB] - so even
+// the best team in the tournament only has an 85% chance in any one match.
 const MIN_PROB = 0.15;
 const MAX_PROB = 0.85;
 
@@ -132,15 +166,25 @@ function simulateBracket(teams) {
 }
 
 // ---- Main ----
-const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-const tournament = findTournament(data, TOURNAMENT_KEY);
+async function main() {
+  const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 
-console.log(`Simulating: ${tournament.tournament} - Fantasy Mixed Doubles\n`);
-console.log(`Your team: ${USER_PICK.male} / ${USER_PICK.female}\n`);
+  const tournament = await pickTournament(data.tournaments);
+  console.log(`\nSelected: ${tournament.tournament}`);
 
-const teams = buildTeams(tournament, USER_PICK);
-const champion = simulateBracket(teams);
-const userWon = champion.isUserTeam;
+  const userMale = await pickPlayer(tournament.men, "Pick your male player");
+  const userFemale = await pickPlayer(tournament.women, "Pick your female player");
 
-console.log(`\n=== CHAMPIONS: ${champion.names.join(" / ")} ===`);
-console.log(userWon ? "Your team won! \ud83c\udfc6" : "Your team did not win this time.");
+  console.log(`\nSimulating: ${tournament.tournament} - Fantasy Mixed Doubles`);
+  console.log(`Your team: ${userMale.name} / ${userFemale.name}\n`);
+
+  const teams = buildTeams(tournament, userMale, userFemale);
+  const champion = simulateBracket(teams);
+  const userWon = champion.isUserTeam;
+
+  console.log(`\n=== CHAMPIONS: ${champion.names.join(" / ")} ===`);
+  console.log(userWon ? "Your team won! \ud83c\udfc6" : "Your team did not win this time.");
+  rlInterface.close();
+}
+
+main();

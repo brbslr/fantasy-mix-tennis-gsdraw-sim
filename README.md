@@ -3,11 +3,10 @@
 Fantasy Grand Slam mixed-doubles tennis simulation and prediction
 game, drafting from the men's and women's singles quarterfinalists of the corresponding grandslam tournament, built on real historical Grand Slam data.
 
-## Current status: V1 — GS Mixed Doubles Fantasy Simulator (2000-2017 & 2026)
+## Current status: user pick with terminal prompt GS Mixed Doubles Fantasy Simulator (1990-2026)
 
-The current version is hardcoded to the quarterfinalists from the grandslams in the year 2000-2017 & 2026.
 The user drafts one male + one female QF player as their fantasy mixed
-doubles team; the remaining 14 players are randomly paired into 7 more teams;
+doubles team by typing to the terminal prompt; the remaining 14 players are randomly paired into 7 more teams;
 an 8-team bracket is simulated based on team strength (average rank of the
 two players). **The user can simulate as many times as they want** - there
 is no daily limit.
@@ -73,13 +72,12 @@ tournaments from 1990 ao to 2026 wimbledon.
   strength-ratio approach as the current V0's `1 / avgRank` model.
 
 ## Previous versions
-0. only wimbledon 2026 simulation
+0. only wimbledon 2026 simulation executable from the terminal with hardcoded picks
+1. simulation executable from the terminal with all of the 147 grandslams from 1990 aus open to 2026 wimbledon with a picker.
 
 ## Next steps
 
-1. Adding the rest of the tournaments finishing the hardcoded simulation
-2. Build a tournament picker so the user can choose which of the ~147
-   tournaments to simulate
-3. Replace the hardcoded `USER_PICK` with an actual UI (web page/mobile)
-   where the user picks their team.
+
+1. Try with other parameters other than tournament seed thinking of using service points won %.
+2. Build a web mobile app accessible to users.
 
