@@ -2,9 +2,9 @@
 
 Fantasy Grand Slam (GS) mixed-doubles tennis simulation and prediction game, drafting from the men's and women's singles quarterfinalists (QF) of the corresponding GS tournament, built on real historical GS data.
 
-## Current status: user pick with terminal version
+## Current status: mobile-friendly website that is accessible to everyone.
 
-The user drafts one male + one female QF as their fantasy mixed doubles team by following the terminal prompt; the remaining 14 players are randomly paired into 7 more teams; 
+The user drafts one male + one female QF as their fantasy mixed doubles team by following the mobile-friendly website; the remaining 14 players are randomly paired into 7 more teams; 
 
 an 8-team bracket is simulated based on team strength. The user can simulate as many times as they want.
 
@@ -83,8 +83,6 @@ If higher muchova and FAA win.
 
 ## Possible next versions
 
-- Develop a mobile-friendly web application that is accessible to everyone.
 - update when a new tournament quarterfinals start.
 - add quality of life updates like simulation history, detailed simulation with scores ...
-- balancing updates if demanded.
 
