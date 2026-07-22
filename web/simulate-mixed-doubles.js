@@ -298,9 +298,25 @@ function playMatch(teamA, teamB) {
   return winner;
 }
 
+// Translates a round's position into a human tournament-stage name.
+// roundIndex is 0-based (0 = first round); totalRounds is how many rounds
+// the whole bracket has (3, for an 8-team bracket). Counting from the END
+// (fromEnd = totalRounds - roundIndex) is what makes this work for any
+// bracket size: the LAST round is always the Final, the one before that is
+// always the Semifinal, etc., regardless of how many rounds came before them.
+function roundLabel(roundIndex, totalRounds) {
+  const fromEnd = totalRounds - roundIndex;
+  if (fromEnd === 1) return "Final";
+  if (fromEnd === 2) return "Semifinal";
+  if (fromEnd === 3) return "Quarterfinal";
+  return `Round ${roundIndex + 1}`;
+}
+
 // Runs a complete single-elimination bracket across all 8 teams (3 rounds:
 // quarterfinal-of-8, then semifinal-of-4, then the final-of-2) until only
-// one champion team remains.
+// one champion team remains. Returns BOTH the champion AND a full
+// round-by-round record of every match played, so the caller can look back
+// afterward and find exactly where any specific team was eliminated.
 function simulateBracket(teams) {
   // Randomize the bracket's starting order, so who plays whom in round 1
   // is different every time this function runs.
@@ -308,18 +324,31 @@ function simulateBracket(teams) {
   // Tracks which round we're on, purely for the "Round 1", "Round 2" labels
   // printed to the terminal.
   let roundNum = 1;
+  // Collects every round's matches (teamA, teamB, and who won each one),
+  // in order, so the full tournament history is available after the loop
+  // ends - not just the final champion.
+  const rounds = [];
 
   // Keep going as long as there's more than one team left standing.
   while (round.length > 1) {
     console.log(`\nRound ${roundNum}:`);
     // Will collect this round's winners, who become next round's field.
     const nextRound = [];
+    // Also collect this round's full match details (not just the winners),
+    // so we can later answer "who did the user's team lose to, and when".
+    const matchesThisRound = [];
     // Step through the current round two teams at a time: (0,1), (2,3),
     // (4,5), (6,7) - each pair is exactly one match.
     for (let i = 0; i < round.length; i += 2) {
+      const teamA = round[i];
+      const teamB = round[i + 1];
       // Play that match and remember who won.
-      nextRound.push(playMatch(round[i], round[i + 1]));
+      const winner = playMatch(teamA, teamB);
+      nextRound.push(winner);
+      matchesThisRound.push({ teamA, teamB, winner });
     }
+    // Save this round's full match list before moving on.
+    rounds.push(matchesThisRound);
     // Next iteration of the while loop operates on this round's winners.
     round = nextRound;
     // Move the round counter forward for the next "Round N:" label.
@@ -327,8 +356,9 @@ function simulateBracket(teams) {
   }
 
   // The loop above only stops once exactly one team remains in "round" -
-  // that team is the tournament champion.
-  return round[0];
+  // that team is the tournament champion. Return it alongside the full
+  // round-by-round record collected above.
+  return { rounds, champion: round[0] };
 }
 
 // ---- Main ----
@@ -358,15 +388,39 @@ async function main() {
   // Build all 8 teams: the user's drafted pair, plus 7 randomly paired
   // teams from everyone else in the tournament's QF field.
   const teams = buildTeams(tournament, userMale, userFemale);
-  // Run the full bracket simulation down to a single champion team.
-  const champion = simulateBracket(teams);
+  // Run the full bracket simulation down to a single champion team, and get
+  // back the full round-by-round match history alongside it.
+  const { rounds, champion } = simulateBracket(teams);
   // Check whether that champion team happens to be the user's own team
   // (recall every team object carries an isUserTeam: true/false flag).
   const userWon = champion.isUserTeam;
 
+  // If the user didn't win, walk through the round-by-round history to find
+  // the ONE match their team lost (a team appears in exactly one match per
+  // round it survives, and stops appearing the round after it loses - so
+  // there's exactly one "losing match" to find, if any).
+  let eliminationLine = "";
+  if (!userWon) {
+    for (let roundIdx = 0; roundIdx < rounds.length; roundIdx++) {
+      // Find this round's match that involves the user's team AND where
+      // the user's team did NOT come out as the winner.
+      const lostMatch = rounds[roundIdx].find(
+        (m) => (m.teamA.isUserTeam || m.teamB.isUserTeam) && !m.winner.isUserTeam
+      );
+      if (lostMatch) {
+        // Whichever of the two teams in that match ISN'T the user's team
+        // is the opponent who beat them.
+        const opponent = lostMatch.teamA.isUserTeam ? lostMatch.teamB : lostMatch.teamA;
+        eliminationLine = `Eliminated in the ${roundLabel(roundIdx, rounds.length)} by ${opponent.names.join(" / ")}.`;
+        break; // found it - no need to keep checking later rounds
+      }
+    }
+  }
+
   // Print the final result.
   console.log(`\n=== CHAMPIONS: ${champion.names.join(" / ")} ===`);
   console.log(userWon ? "Your team won! \ud83c\udfc6" : "Your team did not win this time.");
+  if (eliminationLine) console.log(eliminationLine);
   // Close the readline interface now that we're done asking questions.
   // Without this line, Node keeps the process alive waiting for more
   // terminal input that will never come, and the script never exits.
