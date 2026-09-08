@@ -13116,6 +13116,95 @@
           "svcPtsWonPct": 58
         }
       ]
+    },
+    {
+      "key": "usopen_2026",
+      "tournament": "US Open 2026",
+      "men": [
+        {
+          "name": "Botic Van de Zandschulp",
+          "rank": 6,
+          "svcPtsWonPct": 60,
+          "svcPtsWonPctEstimated": true
+        },
+        {
+          "name": "Alexander Zverev",
+          "rank": 2,
+          "svcPtsWonPct": 65.2
+        },
+        {
+          "name": "Karen Khachanov" ,
+          "rank": 3,
+          "svcPtsWonPct": 64.8
+        },
+        {
+          "name": "Alexander Blockx",
+          "rank": 5,
+          "svcPtsWonPct": 60
+        },
+        {
+          "name": "Frances Tiafoe",
+          "rank": 7,
+          "svcPtsWonPct": 65
+        },
+        {
+          "name": "Alex Michelsen",
+          "rank": 4,
+          "svcPtsWonPct": 64
+        },
+        {
+          "name": "Ben Shelton",
+          "rank": 8,
+          "svcPtsWonPct": 65.6
+        },
+        {
+          "name": "Carlos Alcaraz",
+          "rank": 2,
+          "svcPtsWonPct": 67
+        }
+      ],
+      "women": [
+        {
+          "name": "Jessica Pegula",
+          "rank": 3,
+          "svcPtsWonPct": 53
+        },
+        {
+          "name": "Coco Gauff",
+          "rank": 4,
+          "svcPtsWonPct": 53
+        },
+        {
+          "name": "Linda Noskova",
+          "rank": 6,
+          "svcPtsWonPct": 58
+        },
+        {
+          "name": "Elena Rybakina",
+          "rank": 2,
+          "svcPtsWonPct": 53.7
+        },
+        {
+          "name": "Aryna Sabalenka",
+          "rank": 1,
+          "svcPtsWonPct": 62
+        },
+        {
+          "name": "Mira Andreeva",
+          "rank": 5,
+          "svcPtsWonPct": 62.6
+        },
+        {
+          "name": "Qinwen Zheng",
+          "rank": 8,
+          "svcPtsWonPct": 61
+        },
+        {
+          "name": "Emma Navarro",
+          "rank": 7,
+          "svcPtsWonPct": 51
+        }
+      ]
     }
   ]
 }
